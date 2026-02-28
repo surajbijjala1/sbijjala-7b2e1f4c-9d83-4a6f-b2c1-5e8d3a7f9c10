@@ -5,6 +5,7 @@ import { AppService } from './app.service.js';
 import { Organization } from './entities/organization.entity.js';
 import { User } from './entities/user.entity.js';
 import { Task } from './entities/task.entity.js';
+import { AuthModule } from './auth/auth.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { Task } from './entities/task.entity.js';
       entities: [Organization, User, Task],
       synchronize: true, // Auto-sync schema in development only
     }),
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
