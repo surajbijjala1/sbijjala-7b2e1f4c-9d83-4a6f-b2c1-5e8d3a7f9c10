@@ -40,13 +40,14 @@ export interface TaskFormSubmitEvent {
     ></div>
 
     <!-- Modal dialog -->
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div
-        class="w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden"
+        class="w-full sm:max-w-lg bg-white dark:bg-gray-800 rounded-t-xl sm:rounded-xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700
+               overflow-hidden max-h-[90vh] overflow-y-auto"
         (click)="$event.stopPropagation()"
       >
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
             {{ task ? 'Edit Task' : 'New Task' }}
           </h2>
@@ -56,7 +57,7 @@ export interface TaskFormSubmitEvent {
         </div>
 
         <!-- Form body -->
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="px-6 py-5 space-y-4">
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="px-4 sm:px-6 py-5 space-y-4">
           <!-- Title -->
           <div>
             <label for="tf-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -147,11 +148,11 @@ export interface TaskFormSubmitEvent {
           </div>
 
           <!-- Footer buttons -->
-          <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-gray-700 mt-2">
+          <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 sm:gap-3 pt-2 border-t border-gray-100 dark:border-gray-700 mt-2">
             <button
               type="button"
               (click)="onCancel()"
-              class="rounded-md bg-gray-100 dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
+              class="w-full sm:w-auto rounded-md bg-gray-100 dark:bg-gray-700 px-4 py-2.5 sm:py-2 text-sm font-medium text-gray-700 dark:text-gray-300
                      hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               Cancel
@@ -159,7 +160,7 @@ export interface TaskFormSubmitEvent {
             <button
               type="submit"
               [disabled]="form.invalid"
-              class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white
+              class="w-full sm:w-auto rounded-md bg-indigo-600 px-4 py-2.5 sm:py-2 text-sm font-semibold text-white
                      shadow-sm hover:bg-indigo-500 disabled:opacity-50
                      disabled:cursor-not-allowed transition-colors"
             >
