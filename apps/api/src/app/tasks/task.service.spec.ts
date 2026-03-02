@@ -1,10 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import * as nodeFs from 'node:fs';
 import { TaskService } from './task.service';
 import { Task } from '../entities/task.entity';
 import { TaskStatus, TaskCategory, Role } from '@turbomonorepo/shared-data';
 import type { JwtPayload } from '../auth/jwt.strategy';
+
+// Spy on appendFileSync so it doesn't write to disk but we can assert on it
+let appendSpy: jest.SpyInstance;
+
+beforeEach(() => {
+  appendSpy = jest.spyOn(nodeFs, 'appendFileSync').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  appendSpy.mockRestore();
+});
 
 describe('TaskService', () => {
   let service: TaskService;
@@ -236,6 +248,7 @@ describe('TaskService', () => {
 
     beforeEach(() => {
       logSpy = jest.spyOn((service as any).logger, 'log');
+      appendSpy.mockClear();
     });
 
     it('should log an audit entry when a task is created', async () => {
@@ -253,6 +266,11 @@ describe('TaskService', () => {
       expect(logSpy).toHaveBeenCalledWith(
         expect.stringContaining('created'),
       );
+      expect(appendSpy).toHaveBeenCalledWith(
+        expect.stringContaining('audit.log'),
+        expect.stringContaining('[AUDIT]'),
+        'utf-8',
+      );
     });
 
     it('should log an audit entry when a task is updated', async () => {
@@ -269,6 +287,11 @@ describe('TaskService', () => {
       expect(logSpy).toHaveBeenCalledWith(
         expect.stringContaining('updated'),
       );
+      expect(appendSpy).toHaveBeenCalledWith(
+        expect.stringContaining('audit.log'),
+        expect.stringContaining('updated'),
+        'utf-8',
+      );
     });
 
     it('should log an audit entry when a task is deleted', async () => {
@@ -284,6 +307,11 @@ describe('TaskService', () => {
       );
       expect(logSpy).toHaveBeenCalledWith(
         expect.stringContaining('deleted'),
+      );
+      expect(appendSpy).toHaveBeenCalledWith(
+        expect.stringContaining('audit.log'),
+        expect.stringContaining('deleted'),
+        'utf-8',
       );
     });
   });

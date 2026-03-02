@@ -7,6 +7,7 @@ import { User } from './entities/user.entity.js';
 import { Task } from './entities/task.entity.js';
 import { AuthModule } from './auth/auth.module.js';
 import { TaskModule } from './tasks/task.module.js';
+import { AuditLogModule } from './audit-log/audit-log.module.js';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { TaskModule } from './tasks/task.module.js';
     }),
     AuthModule,
     TaskModule,
+    AuditLogModule,
   ],
   controllers: [AppController],
   providers: [AppService],

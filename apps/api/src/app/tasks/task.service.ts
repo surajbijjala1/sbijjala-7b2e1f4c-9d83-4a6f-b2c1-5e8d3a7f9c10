@@ -6,9 +6,13 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as fs from 'node:fs';
+import { resolve } from 'node:path';
 import { Task } from '../entities/task.entity.js';
 import type { JwtPayload } from '../auth/jwt.strategy.js';
 import type { ICreateTask, IUpdateTask } from '@turbomonorepo/shared-data';
+
+const AUDIT_LOG_PATH = resolve(process.cwd(), 'audit.log');
 
 @Injectable()
 export class TaskService {
@@ -18,6 +22,13 @@ export class TaskService {
     @InjectRepository(Task)
     private readonly taskRepo: Repository<Task>,
   ) {}
+
+  /** Append a timestamped line to the audit log file and also log to console. */
+  private audit(message: string): void {
+    const line = `[${new Date().toISOString()}] ${message}\n`;
+    this.logger.log(message);
+    fs.appendFileSync(AUDIT_LOG_PATH, line, 'utf-8');
+  }
 
   /**
    * Create a task scoped to the requesting user's organization.
@@ -34,7 +45,7 @@ export class TaskService {
 
     const saved = await this.taskRepo.save(task);
 
-    this.logger.log(
+    this.audit(
       `[AUDIT] User [${user.sub}] created Task [${saved.id}] in Org [${user.organizationId}]`,
     );
 
@@ -75,7 +86,7 @@ export class TaskService {
     Object.assign(task, dto);
     const updated = await this.taskRepo.save(task);
 
-    this.logger.log(
+    this.audit(
       `[AUDIT] User [${user.sub}] updated Task [${taskId}] in Org [${user.organizationId}]`,
     );
 
@@ -100,7 +111,7 @@ export class TaskService {
 
     await this.taskRepo.remove(task);
 
-    this.logger.log(
+    this.audit(
       `[AUDIT] User [${user.sub}] deleted Task [${taskId}] from Org [${user.organizationId}]`,
     );
   }

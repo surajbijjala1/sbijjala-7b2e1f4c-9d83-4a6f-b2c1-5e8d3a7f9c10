@@ -11,7 +11,8 @@ import {
 } from '@nestjs/common';
 import { TaskService } from './task.service.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
-import { Roles, RolesGuard } from '@turbomonorepo/shared-auth';
+import { RolesGuard } from '../auth/roles.guard.js';
+import { Roles } from '@turbomonorepo/shared-auth';
 import { Role } from '@turbomonorepo/shared-data';
 import type { ICreateTask, IUpdateTask } from '@turbomonorepo/shared-data';
 import type { JwtPayload } from '../auth/jwt.strategy.js';

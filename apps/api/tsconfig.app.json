@@ -14,6 +14,9 @@
   "references": [
     {
       "path": "../../libs/shared/data/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shared/auth/tsconfig.lib.json"
     }
   ]
 }
