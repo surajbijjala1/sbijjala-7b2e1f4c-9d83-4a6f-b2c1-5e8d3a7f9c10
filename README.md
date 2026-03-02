@@ -13,6 +13,7 @@ A full-stack task management platform built with an **NX monorepo**, **NestJS** 
 5. [API Documentation](#api-documentation)
 6. [Testing](#testing)
 7. [Future Considerations](#future-considerations)
+8. [Tradeoffs & Deviations](#tradeoffs--deviations)
 
 ---
 
@@ -403,3 +404,33 @@ The current `RolesGuard` reads the user's role from the JWT payload on every req
 - **Cache invalidation** — When an admin changes a user's role, publish an event (via Redis Pub/Sub or a message queue) to invalidate that user's cached permissions.
 - **JWT claims enrichment** — For read-heavy workloads, embed a permission hash in the JWT. The guard compares this hash against the cached version; if they match, skip the lookup entirely.
 - **Edge caching** — At scale, deploy an API gateway (e.g., Kong, AWS API Gateway) that validates JWTs and enforces coarse-grained RBAC at the edge, reducing load on application servers.
+
+---
+
+## Tradeoffs & Deviations
+
+A few implementation choices intentionally deviate from the literal spec wording. Each is explained below.
+
+### Shared Library Path (`libs/shared/` vs `libs/`)
+
+The spec suggests `libs/data/` and `libs/auth/`. This project nests them under `libs/shared/data/` and `libs/shared/auth/`. The extra `shared/` grouping keeps the `libs/` folder organized — if additional non-shared libraries (e.g., a UI component library or a server-only utility) were added later, they would sit alongside `shared/` rather than mixing with it at the same level.
+
+### Permissions Model (Implicit Hierarchy vs Dedicated Entity)
+
+The spec lists "Permissions" as a data model. Instead of a separate `permissions` table with explicit permission rows, this project derives permissions from a **role hierarchy rank** (`Owner=3 > Admin=2 > Viewer=1`) inside the `RolesGuard`. This was chosen because:
+
+- The three-role model maps cleanly to a numeric rank, making the guard a single comparison (`userRank >= minRequiredRank`).
+- A dedicated permissions table adds join overhead and migration complexity with no practical benefit when the permission set is static and small.
+- The README's [Future Considerations](#future-considerations) section describes how to evolve toward a fine-grained permissions/claims model if needed.
+
+### Task Categories (Domain-Specific vs Generic)
+
+The spec example uses "Work, Personal" as categories. This project uses `bug`, `feature`, `improvement`, and `documentation` — categories that align with a **task management / issue tracker** domain. The categorization feature (filter dropdown, category badges, color-coded pills) is fully implemented; only the label values differ to better fit the system's purpose.
+
+### Frontend Test Runner (Vitest vs Jest/Karma)
+
+The spec suggests Jest or Karma for frontend tests. This project uses **Vitest**, which is the default test runner scaffolded by NX for Angular projects using the Vite build pipeline. Vitest was kept because:
+
+- It is API-compatible with Jest (`describe`, `it`, `expect`, `vi.fn()`), so tests read identically.
+- It runs significantly faster than Jest or Karma due to native ESM support and Vite's transform pipeline.
+- Switching to Jest would have required additional configuration overrides against the NX defaults with no functional gain.
