@@ -143,11 +143,14 @@ describe('TaskController', () => {
       expect(roles).not.toContain(Role.Viewer);
     });
 
-    it('should NOT have @Roles on the create handler (all authenticated users)', () => {
+    it('should have @Roles(Owner, Admin) on the create handler', () => {
       const reflector = new Reflector();
       const roles = reflector.get<Role[]>('roles', TaskController.prototype.create);
 
-      expect(roles).toBeUndefined();
+      expect(roles).toBeDefined();
+      expect(roles).toContain(Role.Owner);
+      expect(roles).toContain(Role.Admin);
+      expect(roles).not.toContain(Role.Viewer);
     });
 
     it('should NOT have @Roles on the findAll handler (all authenticated users)', () => {
@@ -157,11 +160,14 @@ describe('TaskController', () => {
       expect(roles).toBeUndefined();
     });
 
-    it('should NOT have @Roles on the update handler (all authenticated users)', () => {
+    it('should have @Roles(Owner, Admin) on the update handler', () => {
       const reflector = new Reflector();
       const roles = reflector.get<Role[]>('roles', TaskController.prototype.update);
 
-      expect(roles).toBeUndefined();
+      expect(roles).toBeDefined();
+      expect(roles).toContain(Role.Owner);
+      expect(roles).toContain(Role.Admin);
+      expect(roles).not.toContain(Role.Viewer);
     });
   });
 });

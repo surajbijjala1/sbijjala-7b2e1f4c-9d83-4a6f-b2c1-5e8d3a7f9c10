@@ -23,6 +23,7 @@ export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 
   @Post()
+  @Roles(Role.Owner, Role.Admin)
   create(@Body() dto: ICreateTask, @Request() req: { user: JwtPayload }) {
     return this.taskService.createTask(dto, req.user);
   }
@@ -33,6 +34,7 @@ export class TaskController {
   }
 
   @Put(':id')
+  @Roles(Role.Owner, Role.Admin)
   update(
     @Param('id') id: string,
     @Body() dto: IUpdateTask,

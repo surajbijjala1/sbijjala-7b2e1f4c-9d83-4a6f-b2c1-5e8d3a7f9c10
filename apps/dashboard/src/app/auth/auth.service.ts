@@ -87,6 +87,13 @@ export class AuthService {
     return decoded.exp * 1000 > Date.now();
   }
 
+  /**
+   * Returns the current user's role from the JWT, or null if not logged in.
+   */
+  getUserRole(): string | null {
+    return this.getDecodedToken()?.role ?? null;
+  }
+
   private hasToken(): boolean {
     return !!localStorage.getItem(TOKEN_KEY);
   }
