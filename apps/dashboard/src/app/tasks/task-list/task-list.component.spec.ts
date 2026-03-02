@@ -78,6 +78,7 @@ describe('TaskListComponent', () => {
     TestBed.resetTestingModule();
   });
 
+  // ── Core rendering ───────────────────────────────────
   it('should create', () => {
     setupAndDetect();
     expect(component).toBeTruthy();
@@ -118,84 +119,85 @@ describe('TaskListComponent', () => {
     expect(component.columns[2].tasks.length).toBe(1); // done
   });
 
-  it('should show the Add Task form when button is clicked', () => {
+  it('should display error message when loadTasks fails', () => {
+    setupAndDetect([], 'owner', { error: { message: 'Server error' } });
+    expect(component.errorMessage).toBe('Server error');
+  });
+
+  it('should call logout on AuthService when sign out is clicked', () => {
     setupAndDetect();
+    component.logout();
+    expect(authService.logout).toHaveBeenCalled();
+  });
+
+  it('should render category badges with correct text', () => {
+    const tasks = [
+      makeMockTask({ id: '1', category: 'bug', status: 'open' }),
+    ];
+    setupAndDetect(tasks, 'owner');
 
     const el = fixture.nativeElement as HTMLElement;
-    const addBtn = el.querySelector('button') as HTMLButtonElement;
-    addBtn.click();
-    fixture.detectChanges();
-    fixture.detectChanges();
-
-    expect(el.querySelector('input[name="newTitle"]')).toBeTruthy();
-    expect(el.querySelector('textarea[name="newDescription"]')).toBeTruthy();
+    const badge = el.querySelector('.mt-2 .rounded-full');
+    expect(badge?.textContent?.trim()).toBe('bug');
   });
 
-  it('should call createTask with description when the form is submitted', () => {
-    setupAndDetect();
-    component.openAddDialog();
-    component.newTaskTitle = 'New Task';
-    component.newTaskDescription = 'A description';
-    component.newTaskCategory = 'bug';
-    component.addTask();
+  // ── RBAC tests ───────────────────────────────────────
+  it('should hide Add Task button for Viewer role', () => {
+    setupAndDetect([], 'viewer');
 
-    expect(taskService.createTask).toHaveBeenCalledWith({
-      title: 'New Task',
-      description: 'A description',
-      status: 'open',
-      category: 'bug',
-    });
+    expect(component.canEdit).toBe(false);
+    const el = fixture.nativeElement as HTMLElement;
+    const buttons = Array.from(el.querySelectorAll('button'));
+    const addBtn = buttons.find((b) => b.textContent?.includes('Add Task'));
+    expect(addBtn).toBeFalsy();
   });
 
-  it('should send null description when description is empty', () => {
-    setupAndDetect();
-    component.openAddDialog();
-    component.newTaskTitle = 'New Task';
-    component.newTaskDescription = '';
-    component.addTask();
+  it('should show Add Task button for Owner role', () => {
+    setupAndDetect([], 'owner');
 
-    expect(taskService.createTask).toHaveBeenCalledWith(
-      expect.objectContaining({ description: null })
-    );
+    expect(component.canEdit).toBe(true);
+    const el = fixture.nativeElement as HTMLElement;
+    const buttons = Array.from(el.querySelectorAll('button'));
+    const addBtn = buttons.find((b) => b.textContent?.includes('Add Task'));
+    expect(addBtn).toBeTruthy();
   });
 
-  it('should hide the add form after successful creation', () => {
-    setupAndDetect();
-    component.openAddDialog();
-    expect(component.showAddForm).toBe(true);
-
-    component.newTaskTitle = 'New Task';
-    component.addTask();
-
-    expect(component.showAddForm).toBe(false);
+  it('should show read-only message for Viewer', () => {
+    setupAndDetect([], 'viewer');
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('read-only access');
   });
 
-  it('should not call createTask with empty title', () => {
-    setupAndDetect();
-    component.openAddDialog();
-    component.newTaskTitle = '   ';
-    component.addTask();
-
-    expect(taskService.createTask).not.toHaveBeenCalled();
+  it('should display the user role badge', () => {
+    setupAndDetect([], 'admin');
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('ADMIN');
   });
 
-  it('should show delete button for Owner role', () => {
+  it('should set canDelete true for admin role', () => {
+    setupAndDetect([], 'admin');
+    expect(component.canDelete).toBe(true);
+  });
+
+  it('should hide edit and delete buttons for Viewer role', () => {
+    const tasks = [makeMockTask()];
+    setupAndDetect(tasks, 'viewer');
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('button[title="Edit task"]')).toBeFalsy();
+    expect(el.querySelector('button[title="Delete task"]')).toBeFalsy();
+  });
+
+  it('should show edit and delete buttons for Owner role', () => {
     const tasks = [makeMockTask()];
     setupAndDetect(tasks, 'owner');
 
     const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('button[title="Edit task"]')).toBeTruthy();
     expect(el.querySelector('button[title="Delete task"]')).toBeTruthy();
   });
 
-  it('should hide delete button for Viewer role', () => {
-    const tasks = [makeMockTask()];
-    setupAndDetect(tasks, 'viewer');
-
-    expect(component.canDelete).toBe(false);
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('button[title="Delete task"]')).toBeFalsy();
-  });
-
+  // ── Delete ───────────────────────────────────────────
   it('should call deleteTask when delete button is clicked', () => {
     const tasks = [makeMockTask({ id: 'del-1' })];
     setupAndDetect(tasks, 'owner');
@@ -224,66 +226,267 @@ describe('TaskListComponent', () => {
     expect(taskService.deleteTask).not.toHaveBeenCalled();
   });
 
-  it('should display error message when loadTasks fails', () => {
-    setupAndDetect([], 'owner', { error: { message: 'Server error' } });
+  // ── Task Form Modal ──────────────────────────────────
+  describe('Task Form Modal', () => {
+    it('should not show the modal by default', () => {
+      setupAndDetect();
+      expect(component.showFormModal).toBe(false);
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('app-task-form')).toBeFalsy();
+    });
 
-    expect(component.errorMessage).toBe('Server error');
+    it('should open create modal when openCreateModal is called', () => {
+      setupAndDetect();
+      component.openCreateModal();
+      fixture.detectChanges();
+      fixture.detectChanges();
+
+      expect(component.showFormModal).toBe(true);
+      expect(component.editingTask).toBeNull();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('app-task-form')).toBeTruthy();
+    });
+
+    it('should open edit modal with the task pre-filled', () => {
+      const task = makeMockTask({ id: 'edit-1', title: 'Edit Me' });
+      setupAndDetect([task]);
+
+      const event = new MouseEvent('click');
+      vi.spyOn(event, 'stopPropagation');
+      component.openEditModal(task, event);
+      fixture.detectChanges();
+      fixture.detectChanges();
+
+      expect(event.stopPropagation).toHaveBeenCalled();
+      expect(component.showFormModal).toBe(true);
+      expect(component.editingTask).toBe(task);
+    });
+
+    it('should close the modal on closeFormModal()', () => {
+      setupAndDetect();
+      component.showFormModal = true;
+      component.editingTask = makeMockTask();
+
+      component.closeFormModal();
+
+      expect(component.showFormModal).toBe(false);
+      expect(component.editingTask).toBeNull();
+    });
+
+    it('should call createTask when formSubmit emits a createDto', () => {
+      setupAndDetect();
+      const createDto = {
+        title: 'New',
+        description: null,
+        status: 'open' as const,
+        category: 'feature' as const,
+      };
+
+      component.onFormSubmit({ createDto });
+
+      expect(taskService.createTask).toHaveBeenCalledWith(createDto);
+    });
+
+    it('should call updateTask when formSubmit emits an updateDto', () => {
+      setupAndDetect();
+      const task = makeMockTask({ id: 'u-1' });
+      const updateDto = { title: 'Updated' };
+
+      component.onFormSubmit({ task, updateDto });
+
+      expect(taskService.updateTask).toHaveBeenCalledWith('u-1', updateDto);
+    });
+
+    it('should close modal after successful create', () => {
+      setupAndDetect();
+      component.showFormModal = true;
+
+      component.onFormSubmit({
+        createDto: { title: 'T', status: 'open', category: 'bug' },
+      });
+
+      expect(component.showFormModal).toBe(false);
+    });
+
+    it('should close modal after successful update', () => {
+      setupAndDetect();
+      component.showFormModal = true;
+      const task = makeMockTask();
+
+      component.onFormSubmit({ task, updateDto: { title: 'X' } });
+
+      expect(component.showFormModal).toBe(false);
+    });
   });
 
-  it('should call logout on AuthService when sign out is clicked', () => {
-    setupAndDetect();
-    component.logout();
-    expect(authService.logout).toHaveBeenCalled();
-  });
+  // ── Filter & Sort control bar ────────────────────────
+  describe('Filter & Sort', () => {
+    it('should render the search input', () => {
+      setupAndDetect();
+      const el = fixture.nativeElement as HTMLElement;
+      const input = el.querySelector(
+        'input[name="searchTerm"]'
+      ) as HTMLInputElement;
+      expect(input).toBeTruthy();
+    });
 
-  it('should set canDelete true for admin role', () => {
-    setupAndDetect([], 'admin');
-    expect(component.canDelete).toBe(true);
-  });
+    it('should render the category filter dropdown', () => {
+      setupAndDetect();
+      const el = fixture.nativeElement as HTMLElement;
+      const select = el.querySelector(
+        'select[name="filterCategory"]'
+      ) as HTMLSelectElement;
+      expect(select).toBeTruthy();
+      // "All Categories" + 4 category options = 5
+      expect(select.options.length).toBe(5);
+    });
 
-  it('should render category badges with correct text', () => {
-    const tasks = [
-      makeMockTask({ id: '1', category: 'bug', status: 'open' }),
-    ];
-    setupAndDetect(tasks, 'owner');
+    it('should render the sort dropdown', () => {
+      setupAndDetect();
+      const el = fixture.nativeElement as HTMLElement;
+      const select = el.querySelector(
+        'select[name="sortOption"]'
+      ) as HTMLSelectElement;
+      expect(select).toBeTruthy();
+      expect(select.options.length).toBe(4);
+    });
 
-    const el = fixture.nativeElement as HTMLElement;
-    const badge = el.querySelector('.mt-2 .rounded-full');
-    expect(badge?.textContent?.trim()).toBe('bug');
-  });
+    it('should filter tasks by search term (case-insensitive)', () => {
+      const tasks = [
+        makeMockTask({ id: '1', title: 'Alpha Task', status: 'open' }),
+        makeMockTask({ id: '2', title: 'Beta Item', status: 'open' }),
+        makeMockTask({ id: '3', title: 'alpha again', status: 'open' }),
+      ];
+      setupAndDetect(tasks);
 
-  // ── RBAC tests ────────────────────────────────────────
-  it('should hide Add Task button for Viewer role', () => {
-    setupAndDetect([], 'viewer');
+      component.searchTerm = 'alpha';
+      component.applyFilters();
+      fixture.detectChanges();
+      fixture.detectChanges();
 
-    expect(component.canEdit).toBe(false);
-    const el = fixture.nativeElement as HTMLElement;
-    const buttons = Array.from(el.querySelectorAll('button'));
-    const addBtn = buttons.find((b) => b.textContent?.includes('Add Task'));
-    expect(addBtn).toBeFalsy();
-  });
+      const openTasks = component.columns[0].tasks;
+      expect(openTasks.length).toBe(2);
+      expect(openTasks.map((t) => t.id)).toContain('1');
+      expect(openTasks.map((t) => t.id)).toContain('3');
+    });
 
-  it('should show Add Task button for Owner role', () => {
-    setupAndDetect([], 'owner');
+    it('should filter tasks by category', () => {
+      const tasks = [
+        makeMockTask({ id: '1', category: 'bug', status: 'open' }),
+        makeMockTask({ id: '2', category: 'feature', status: 'open' }),
+        makeMockTask({ id: '3', category: 'bug', status: 'in_progress' }),
+      ];
+      setupAndDetect(tasks);
 
-    expect(component.canEdit).toBe(true);
-    const el = fixture.nativeElement as HTMLElement;
-    const buttons = Array.from(el.querySelectorAll('button'));
-    const addBtn = buttons.find((b) => b.textContent?.includes('Add Task'));
-    expect(addBtn).toBeTruthy();
-  });
+      component.filterCategory = 'bug';
+      component.applyFilters();
+      fixture.detectChanges();
+      fixture.detectChanges();
 
-  it('should show read-only message for Viewer', () => {
-    setupAndDetect([], 'viewer');
+      const totalVisible =
+        component.columns[0].tasks.length +
+        component.columns[1].tasks.length +
+        component.columns[2].tasks.length;
+      expect(totalVisible).toBe(2);
+    });
 
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('read-only access');
-  });
+    it('should show all tasks when category filter is empty', () => {
+      const tasks = [
+        makeMockTask({ id: '1', category: 'bug', status: 'open' }),
+        makeMockTask({ id: '2', category: 'feature', status: 'open' }),
+      ];
+      setupAndDetect(tasks);
 
-  it('should display the user role badge', () => {
-    setupAndDetect([], 'admin');
+      component.filterCategory = '';
+      component.applyFilters();
+      fixture.detectChanges();
 
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('ADMIN');
+      expect(component.columns[0].tasks.length).toBe(2);
+    });
+
+    it('should sort tasks by title A-Z within columns', () => {
+      const tasks = [
+        makeMockTask({ id: '1', title: 'Charlie', status: 'open' }),
+        makeMockTask({ id: '2', title: 'Alpha', status: 'open' }),
+        makeMockTask({ id: '3', title: 'Bravo', status: 'open' }),
+      ];
+      setupAndDetect(tasks);
+
+      component.sortOption = 'title-az';
+      component.applyFilters();
+      fixture.detectChanges();
+      fixture.detectChanges();
+
+      const titles = component.columns[0].tasks.map((t) => t.title);
+      expect(titles).toEqual(['Alpha', 'Bravo', 'Charlie']);
+    });
+
+    it('should sort tasks by title Z-A', () => {
+      const tasks = [
+        makeMockTask({ id: '1', title: 'Alpha', status: 'open' }),
+        makeMockTask({ id: '2', title: 'Charlie', status: 'open' }),
+        makeMockTask({ id: '3', title: 'Bravo', status: 'open' }),
+      ];
+      setupAndDetect(tasks);
+
+      component.sortOption = 'title-za';
+      component.applyFilters();
+      fixture.detectChanges();
+      fixture.detectChanges();
+
+      const titles = component.columns[0].tasks.map((t) => t.title);
+      expect(titles).toEqual(['Charlie', 'Bravo', 'Alpha']);
+    });
+
+    it('should sort tasks newest first', () => {
+      const tasks = [
+        makeMockTask({ id: '1', title: 'Old', status: 'open', createdAt: '2026-01-01T00:00:00.000Z' }),
+        makeMockTask({ id: '2', title: 'New', status: 'open', createdAt: '2026-06-01T00:00:00.000Z' }),
+      ];
+      setupAndDetect(tasks);
+
+      component.sortOption = 'newest';
+      component.applyFilters();
+      fixture.detectChanges();
+      fixture.detectChanges();
+
+      expect(component.columns[0].tasks[0].title).toBe('New');
+      expect(component.columns[0].tasks[1].title).toBe('Old');
+    });
+
+    it('should sort tasks oldest first', () => {
+      const tasks = [
+        makeMockTask({ id: '1', title: 'New', status: 'open', createdAt: '2026-06-01T00:00:00.000Z' }),
+        makeMockTask({ id: '2', title: 'Old', status: 'open', createdAt: '2026-01-01T00:00:00.000Z' }),
+      ];
+      setupAndDetect(tasks);
+
+      component.sortOption = 'oldest';
+      component.applyFilters();
+      fixture.detectChanges();
+      fixture.detectChanges();
+
+      expect(component.columns[0].tasks[0].title).toBe('Old');
+      expect(component.columns[0].tasks[1].title).toBe('New');
+    });
+
+    it('should combine search and category filter', () => {
+      const tasks = [
+        makeMockTask({ id: '1', title: 'Fix login bug', category: 'bug', status: 'open' }),
+        makeMockTask({ id: '2', title: 'Fix signup', category: 'feature', status: 'open' }),
+        makeMockTask({ id: '3', title: 'Fix crash bug', category: 'bug', status: 'open' }),
+      ];
+      setupAndDetect(tasks);
+
+      component.searchTerm = 'fix';
+      component.filterCategory = 'bug';
+      component.applyFilters();
+      fixture.detectChanges();
+      fixture.detectChanges();
+
+      expect(component.columns[0].tasks.length).toBe(2);
+      expect(component.columns[0].tasks.map((t) => t.id)).toContain('1');
+      expect(component.columns[0].tasks.map((t) => t.id)).toContain('3');
+    });
   });
 });

@@ -7,8 +7,12 @@ import {
   moveItemInArray,
   transferArrayItem,
 } from '@angular/cdk/drag-drop';
-import { TaskService, Task, CreateTaskDto } from '../task.service';
+import { TaskService, Task } from '../task.service';
 import { AuthService } from '../../auth/auth.service';
+import {
+  TaskFormComponent,
+  TaskFormSubmitEvent,
+} from '../task-form/task-form.component';
 
 /** Column definition for the Kanban board. */
 interface KanbanColumn {
@@ -18,10 +22,13 @@ interface KanbanColumn {
   tasks: Task[];
 }
 
+/** Sort options available in the control bar. */
+type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
+
 @Component({
   selector: 'app-task-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule],
+  imports: [CommonModule, FormsModule, DragDropModule, TaskFormComponent],
   template: `
     <div class="min-h-screen bg-gray-100">
       <!-- Top bar -->
@@ -54,7 +61,7 @@ interface KanbanColumn {
 
             <button
               *ngIf="canEdit"
-              (click)="openAddDialog()"
+              (click)="openCreateModal()"
               class="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2
                      text-sm font-semibold text-white shadow-sm
                      hover:bg-indigo-500 focus:outline-none focus:ring-2
@@ -89,71 +96,61 @@ interface KanbanColumn {
         </div>
       </header>
 
-      <!-- Add-task inline form -->
-      <div
-        *ngIf="showAddForm"
-        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4"
-      >
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <h3 class="text-sm font-semibold text-gray-800 mb-3">New Task</h3>
-
-          <form (ngSubmit)="addTask()" #addForm="ngForm" class="space-y-3">
-            <div class="flex flex-col sm:flex-row gap-3">
-              <input
-                name="newTitle"
-                [(ngModel)]="newTaskTitle"
-                required
-                placeholder="Task title…"
-                class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm
-                       placeholder-gray-400 shadow-sm
-                       focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-
-              <select
-                name="newCategory"
-                [(ngModel)]="newTaskCategory"
-                class="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm
-                       focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              >
-                <option value="feature">Feature</option>
-                <option value="bug">Bug</option>
-                <option value="improvement">Improvement</option>
-                <option value="documentation">Documentation</option>
-              </select>
-            </div>
-
-            <!-- Description textarea -->
-            <textarea
-              name="newDescription"
-              [(ngModel)]="newTaskDescription"
-              placeholder="Description (optional)…"
-              rows="2"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm
+      <!-- ── Filter / Sort control bar ── -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <div
+          class="bg-white rounded-lg shadow-sm border border-gray-200 p-3
+                 flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
+        >
+          <!-- Search by title -->
+          <div class="relative flex-1">
+            <svg
+              class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+              fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+            <input
+              type="text"
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="applyFilters()"
+              placeholder="Search by title…"
+              name="searchTerm"
+              class="w-full rounded-md border border-gray-300 pl-9 pr-3 py-2 text-sm
                      placeholder-gray-400 shadow-sm
-                     focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500
-                     resize-y"
-            ></textarea>
+                     focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
 
-            <div class="flex gap-2">
-              <button
-                type="submit"
-                [disabled]="!addForm.valid"
-                class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white
-                       shadow-sm hover:bg-indigo-500 disabled:opacity-50
-                       disabled:cursor-not-allowed transition-colors"
-              >
-                Create
-              </button>
-              <button
-                type="button"
-                (click)="showAddForm = false"
-                class="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700
-                       hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+          <!-- Filter by category -->
+          <select
+            [(ngModel)]="filterCategory"
+            (ngModelChange)="applyFilters()"
+            name="filterCategory"
+            class="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm
+                   focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="">All Categories</option>
+            <option value="feature">Feature</option>
+            <option value="bug">Bug</option>
+            <option value="improvement">Improvement</option>
+            <option value="documentation">Documentation</option>
+          </select>
+
+          <!-- Sort by -->
+          <select
+            [(ngModel)]="sortOption"
+            (ngModelChange)="applyFilters()"
+            name="sortOption"
+            class="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm
+                   focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="title-az">Title A → Z</option>
+            <option value="title-za">Title Z → A</option>
+          </select>
         </div>
       </div>
 
@@ -243,38 +240,58 @@ interface KanbanColumn {
                     {{ task.title }}
                   </h3>
 
-                  <!-- Delete button (Owner/Admin only) -->
-                  <button
-                    *ngIf="canDelete"
-                    (click)="deleteTask(task.id, $event)"
-                    title="Delete task"
-                    class="flex-shrink-0 p-1 rounded text-gray-400
-                           hover:text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <svg
-                      class="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke-width="1.5"
-                      stroke="currentColor"
+                  <!-- Action buttons (Owner/Admin) -->
+                  <div *ngIf="canEdit" class="flex items-center gap-1 flex-shrink-0">
+                    <!-- Edit button -->
+                    <button
+                      (click)="openEditModal(task, $event)"
+                      title="Edit task"
+                      class="p-1 rounded text-gray-400
+                             hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                     >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21
-                           c.342.052.682.107 1.022.166m-1.022-.165L18.16
-                           19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25
-                           2.25 0 0 1-2.244-2.077L4.772 5.79m14.456
-                           0a48.108 48.108 0 0 0-3.478-.397m-12
-                           .562c.34-.059.68-.114 1.022-.165m0
-                           0a48.11 48.11 0 0 1 3.478-.397m7.5
-                           0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964
-                           51.964 0 0 0-3.32 0c-1.18.037-2.09
-                           1.022-2.09 2.201v.916m7.5 0a48.667
-                           48.667 0 0 0-7.5 0"
-                      />
-                    </svg>
-                  </button>
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                           stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652
+                             2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6
+                             18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M19.5 7.125 16.862 4.487" />
+                      </svg>
+                    </button>
+
+                    <!-- Delete button -->
+                    <button
+                      (click)="deleteTask(task.id, $event)"
+                      title="Delete task"
+                      class="p-1 rounded text-gray-400
+                             hover:text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <svg
+                        class="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21
+                             c.342.052.682.107 1.022.166m-1.022-.165L18.16
+                             19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25
+                             2.25 0 0 1-2.244-2.077L4.772 5.79m14.456
+                             0a48.108 48.108 0 0 0-3.478-.397m-12
+                             .562c.34-.059.68-.114 1.022-.165m0
+                             0a48.11 48.11 0 0 1 3.478-.397m7.5
+                             0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964
+                             51.964 0 0 0-3.32 0c-1.18.037-2.09
+                             1.022-2.09 2.201v.916m7.5 0a48.667
+                             48.667 0 0 0-7.5 0"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Description (if present) -->
@@ -315,6 +332,14 @@ interface KanbanColumn {
         </ng-template>
       </main>
     </div>
+
+    <!-- Task Form Modal -->
+    <app-task-form
+      *ngIf="showFormModal"
+      [task]="editingTask"
+      (formSubmit)="onFormSubmit($event)"
+      (formCancel)="closeFormModal()"
+    ></app-task-form>
   `,
   styles: [`
     .cdk-drag-placeholder {
@@ -343,10 +368,17 @@ export class TaskListComponent implements OnInit {
   isLoading = true;
   errorMessage = '';
 
-  showAddForm = false;
-  newTaskTitle = '';
-  newTaskDescription = '';
-  newTaskCategory: Task['category'] = 'feature';
+  // ── Filter & Sort state ──────────────────────────────
+  searchTerm = '';
+  filterCategory = '';
+  sortOption: SortOption = 'newest';
+
+  // ── Task Form modal state ────────────────────────────
+  showFormModal = false;
+  editingTask: Task | null = null;
+
+  /** The full unfiltered task list from the service. */
+  private allTasks: Task[] = [];
 
   /** Current user's role. */
   userRole: string | null = null;
@@ -369,7 +401,8 @@ export class TaskListComponent implements OnInit {
     this.canEdit = this.userRole === 'owner' || this.userRole === 'admin';
 
     this.taskService.tasks$.subscribe((tasks) => {
-      this.distributeToColumns(tasks);
+      this.allTasks = tasks;
+      this.applyFilters();
       this.cdr.detectChanges();
     });
 
@@ -387,35 +420,82 @@ export class TaskListComponent implements OnInit {
     });
   }
 
-  /** Open the inline "Add Task" form. */
-  openAddDialog(): void {
-    this.newTaskTitle = '';
-    this.newTaskDescription = '';
-    this.newTaskCategory = 'feature';
-    this.showAddForm = true;
+  // ── Modal helpers ────────────────────────────────────
+
+  /** Open the modal in "create" mode. */
+  openCreateModal(): void {
+    this.editingTask = null;
+    this.showFormModal = true;
+    this.cdr.detectChanges();
   }
 
-  /** Submit the new task to the API. */
-  addTask(): void {
-    if (!this.newTaskTitle.trim()) return;
+  /** Open the modal in "edit" mode pre-filled with an existing task. */
+  openEditModal(task: Task, event: MouseEvent): void {
+    event.stopPropagation();
+    this.editingTask = task;
+    this.showFormModal = true;
+    this.cdr.detectChanges();
+  }
 
-    const dto: CreateTaskDto = {
-      title: this.newTaskTitle.trim(),
-      description: this.newTaskDescription.trim() || null,
-      status: 'open',
-      category: this.newTaskCategory,
-    };
+  /** Close the task form modal. */
+  closeFormModal(): void {
+    this.showFormModal = false;
+    this.editingTask = null;
+  }
 
-    this.taskService.createTask(dto).subscribe({
-      next: () => {
-        this.showAddForm = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.errorMessage = err.error?.message || 'Failed to create task.';
-        this.cdr.detectChanges();
-      },
-    });
+  /** Handle the formSubmit event from the TaskFormComponent. */
+  onFormSubmit(event: TaskFormSubmitEvent): void {
+    if (event.task && event.updateDto) {
+      // Edit mode
+      this.taskService.updateTask(event.task.id, event.updateDto).subscribe({
+        next: () => {
+          this.closeFormModal();
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.errorMessage = err.error?.message || 'Failed to update task.';
+          this.cdr.detectChanges();
+        },
+      });
+    } else if (event.createDto) {
+      // Create mode
+      this.taskService.createTask(event.createDto).subscribe({
+        next: () => {
+          this.closeFormModal();
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.errorMessage = err.error?.message || 'Failed to create task.';
+          this.cdr.detectChanges();
+        },
+      });
+    }
+  }
+
+  // ── Filter & Sort logic ──────────────────────────────
+
+  /** Apply search, category filter, and sort; redistribute into columns. */
+  applyFilters(): void {
+    let filtered = [...this.allTasks];
+
+    // 1. Search by title (case-insensitive)
+    if (this.searchTerm.trim()) {
+      const term = this.searchTerm.trim().toLowerCase();
+      filtered = filtered.filter((t) =>
+        t.title.toLowerCase().includes(term)
+      );
+    }
+
+    // 2. Filter by category
+    if (this.filterCategory) {
+      filtered = filtered.filter((t) => t.category === this.filterCategory);
+    }
+
+    // 3. Sort
+    filtered = this.sortTasks(filtered, this.sortOption);
+
+    this.distributeToColumns(filtered);
+    this.cdr.detectChanges();
   }
 
   /** Delete a task (prevents the drag event from firing). */
@@ -495,6 +575,30 @@ export class TaskListComponent implements OnInit {
   private distributeToColumns(tasks: Task[]): void {
     for (const col of this.columns) {
       col.tasks = tasks.filter((t) => t.status === col.id);
+    }
+  }
+
+  /** Sort a task array according to the selected sort option. */
+  private sortTasks(tasks: Task[], option: SortOption): Task[] {
+    switch (option) {
+      case 'newest':
+        return tasks.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      case 'oldest':
+        return tasks.sort(
+          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      case 'title-az':
+        return tasks.sort((a, b) =>
+          a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+        );
+      case 'title-za':
+        return tasks.sort((a, b) =>
+          b.title.localeCompare(a.title, undefined, { sensitivity: 'base' })
+        );
+      default:
+        return tasks;
     }
   }
 }
