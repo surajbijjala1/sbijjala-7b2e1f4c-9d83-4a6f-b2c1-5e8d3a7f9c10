@@ -9,6 +9,7 @@ import { AppModule } from './app/app.module.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors(); // Allow Angular dev server (port 4200) to call the API
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
 
