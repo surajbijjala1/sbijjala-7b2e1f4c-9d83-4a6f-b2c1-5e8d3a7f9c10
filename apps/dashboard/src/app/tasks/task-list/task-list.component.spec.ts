@@ -76,6 +76,9 @@ describe('TaskListComponent', () => {
 
   afterEach(() => {
     TestBed.resetTestingModule();
+    // Clean up dark mode state between tests
+    document.documentElement.classList.remove('dark');
+    localStorage.removeItem('darkMode');
   });
 
   // ── Core rendering ───────────────────────────────────
@@ -487,6 +490,141 @@ describe('TaskListComponent', () => {
       expect(component.columns[0].tasks.length).toBe(2);
       expect(component.columns[0].tasks.map((t) => t.id)).toContain('1');
       expect(component.columns[0].tasks.map((t) => t.id)).toContain('3');
+    });
+  });
+
+  // ── Dark Mode Toggle ─────────────────────────────────
+  describe('Dark Mode Toggle', () => {
+    it('should default isDarkMode to false when no localStorage value', () => {
+      localStorage.removeItem('darkMode');
+      setupAndDetect();
+      expect(component.isDarkMode).toBe(false);
+    });
+
+    it('should render the dark mode toggle button', () => {
+      setupAndDetect();
+      const el = fixture.nativeElement as HTMLElement;
+      const btn = el.querySelector('button[title="Toggle dark mode"]');
+      expect(btn).toBeTruthy();
+    });
+
+    it('should toggle isDarkMode when toggleDarkMode() is called', () => {
+      setupAndDetect();
+      expect(component.isDarkMode).toBe(false);
+
+      component.toggleDarkMode();
+      expect(component.isDarkMode).toBe(true);
+
+      component.toggleDarkMode();
+      expect(component.isDarkMode).toBe(false);
+    });
+
+    it('should persist dark mode preference to localStorage', () => {
+      setupAndDetect();
+      component.toggleDarkMode();
+      expect(localStorage.getItem('darkMode')).toBe('true');
+
+      component.toggleDarkMode();
+      expect(localStorage.getItem('darkMode')).toBe('false');
+    });
+
+    it('should add "dark" class to document.documentElement when enabled', () => {
+      setupAndDetect();
+      component.toggleDarkMode();
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+    });
+
+    it('should remove "dark" class from document.documentElement when disabled', () => {
+      setupAndDetect();
+      component.toggleDarkMode(); // enable
+      component.toggleDarkMode(); // disable
+      expect(document.documentElement.classList.contains('dark')).toBe(false);
+    });
+
+    it('should restore dark mode from localStorage on init', () => {
+      localStorage.setItem('darkMode', 'true');
+      setupAndDetect();
+      expect(component.isDarkMode).toBe(true);
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+      // cleanup
+      localStorage.removeItem('darkMode');
+      document.documentElement.classList.remove('dark');
+    });
+  });
+
+  // ── Keyboard Shortcuts ───────────────────────────────
+  describe('Keyboard Shortcuts', () => {
+    it('should open create modal on Shift+N for Owner', () => {
+      setupAndDetect([], 'owner');
+      expect(component.showFormModal).toBe(false);
+
+      const event = new KeyboardEvent('keydown', { key: 'N', shiftKey: true });
+      component.handleKeyboardShortcut(event);
+
+      expect(component.showFormModal).toBe(true);
+      expect(component.editingTask).toBeNull();
+    });
+
+    it('should open create modal on Shift+N for Admin', () => {
+      setupAndDetect([], 'admin');
+
+      const event = new KeyboardEvent('keydown', { key: 'N', shiftKey: true });
+      component.handleKeyboardShortcut(event);
+
+      expect(component.showFormModal).toBe(true);
+    });
+
+    it('should NOT open modal on Shift+N for Viewer', () => {
+      setupAndDetect([], 'viewer');
+
+      const event = new KeyboardEvent('keydown', { key: 'N', shiftKey: true });
+      component.handleKeyboardShortcut(event);
+
+      expect(component.showFormModal).toBe(false);
+    });
+
+    it('should NOT open another modal if modal is already open', () => {
+      setupAndDetect([], 'owner');
+      component.showFormModal = true;
+      component.editingTask = makeMockTask();
+
+      const event = new KeyboardEvent('keydown', { key: 'N', shiftKey: true });
+      component.handleKeyboardShortcut(event);
+
+      // editingTask should remain set (not reset to null for a new create)
+      expect(component.editingTask).not.toBeNull();
+    });
+
+    it('should close modal on Escape key', () => {
+      setupAndDetect([], 'owner');
+      component.showFormModal = true;
+
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      component.handleKeyboardShortcut(event);
+
+      expect(component.showFormModal).toBe(false);
+    });
+
+    it('should ignore Shift+N when focus is on an input element', () => {
+      setupAndDetect([], 'owner');
+
+      const input = document.createElement('input');
+      const event = new KeyboardEvent('keydown', { key: 'N', shiftKey: true });
+      Object.defineProperty(event, 'target', { value: input });
+      component.handleKeyboardShortcut(event);
+
+      expect(component.showFormModal).toBe(false);
+    });
+
+    it('should ignore Shift+N when focus is on a textarea', () => {
+      setupAndDetect([], 'owner');
+
+      const textarea = document.createElement('textarea');
+      const event = new KeyboardEvent('keydown', { key: 'N', shiftKey: true });
+      Object.defineProperty(event, 'target', { value: textarea });
+      component.handleKeyboardShortcut(event);
+
+      expect(component.showFormModal).toBe(false);
     });
   });
 });

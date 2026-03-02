@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -30,30 +30,75 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
   standalone: true,
   imports: [CommonModule, FormsModule, DragDropModule, TaskFormComponent],
   template: `
-    <div class="min-h-screen bg-gray-100">
+    <div class="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
       <!-- Top bar -->
       <header
-        class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10"
+        class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10"
       >
         <div
           class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between"
         >
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Task Board</h1>
-            <p class="text-sm text-gray-500 mt-0.5">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Task Board</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               <span *ngIf="canEdit">Drag tasks between columns to update their status</span>
               <span *ngIf="!canEdit">You have read-only access</span>
             </p>
           </div>
 
           <div class="flex items-center gap-3">
+            <!-- Dark mode toggle -->
+            <button
+              (click)="toggleDarkMode()"
+              title="Toggle dark mode"
+              class="p-2 rounded-md text-gray-500 dark:text-gray-400
+                     hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <!-- Sun icon (visible in dark mode) -->
+              <svg
+                *ngIf="isDarkMode"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386
+                     6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591
+                     1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75
+                     3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"
+                />
+              </svg>
+              <!-- Moon icon (visible in light mode) -->
+              <svg
+                *ngIf="!isDarkMode"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385
+                     0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753
+                     9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75
+                     21a9.753 9.753 0 0 0 9.002-5.998Z"
+                />
+              </svg>
+            </button>
+
             <!-- Role badge -->
             <span
               class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
               [ngClass]="{
-                'bg-indigo-100 text-indigo-700': userRole === 'owner',
-                'bg-blue-100 text-blue-700': userRole === 'admin',
-                'bg-gray-100 text-gray-600': userRole === 'viewer'
+                'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300': userRole === 'owner',
+                'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300': userRole === 'admin',
+                'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300': userRole === 'viewer'
               }"
             >
               {{ userRole | uppercase }}
@@ -65,7 +110,7 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
               class="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2
                      text-sm font-semibold text-white shadow-sm
                      hover:bg-indigo-500 focus:outline-none focus:ring-2
-                     focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+                     focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
             >
               <!-- Plus icon -->
               <svg
@@ -86,8 +131,8 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
 
             <button
               (click)="logout()"
-              class="inline-flex items-center gap-1.5 rounded-md bg-gray-100 px-3 py-2
-                     text-sm font-medium text-gray-700 hover:bg-gray-200
+              class="inline-flex items-center gap-1.5 rounded-md bg-gray-100 dark:bg-gray-700 px-3 py-2
+                     text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600
                      transition-colors"
             >
               Sign out
@@ -99,13 +144,13 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
       <!-- ── Filter / Sort control bar ── -->
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         <div
-          class="bg-white rounded-lg shadow-sm border border-gray-200 p-3
+          class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3
                  flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
         >
           <!-- Search by title -->
           <div class="relative flex-1">
             <svg
-              class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+              class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500"
               fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
             >
               <path stroke-linecap="round" stroke-linejoin="round"
@@ -117,8 +162,9 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
               (ngModelChange)="applyFilters()"
               placeholder="Search by title…"
               name="searchTerm"
-              class="w-full rounded-md border border-gray-300 pl-9 pr-3 py-2 text-sm
-                     placeholder-gray-400 shadow-sm
+              class="w-full rounded-md border border-gray-300 dark:border-gray-600 pl-9 pr-3 py-2 text-sm
+                     placeholder-gray-400 dark:placeholder-gray-500 shadow-sm
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
                      focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
@@ -128,7 +174,8 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
             [(ngModel)]="filterCategory"
             (ngModelChange)="applyFilters()"
             name="filterCategory"
-            class="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm
+            class="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm shadow-sm
+                   bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
                    focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
             <option value="">All Categories</option>
@@ -143,7 +190,8 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
             [(ngModel)]="sortOption"
             (ngModelChange)="applyFilters()"
             name="sortOption"
-            class="rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm
+            class="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm shadow-sm
+                   bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
                    focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
             <option value="newest">Newest First</option>
@@ -160,12 +208,12 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
         class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4"
       >
         <div
-          class="rounded-md bg-red-50 border border-red-200 p-3 flex items-center justify-between"
+          class="rounded-md bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-3 flex items-center justify-between"
         >
-          <p class="text-sm text-red-700">{{ errorMessage }}</p>
+          <p class="text-sm text-red-700 dark:text-red-400">{{ errorMessage }}</p>
           <button
             (click)="errorMessage = ''"
-            class="text-red-400 hover:text-red-600"
+            class="text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-300"
           >
             ✕
           </button>
@@ -180,23 +228,23 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
         >
           <div
             *ngFor="let col of columns"
-            class="flex flex-col bg-gray-50 rounded-lg border border-gray-200 overflow-hidden"
+            class="flex flex-col bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
           >
             <!-- Column header -->
             <div
-              class="px-4 py-3 border-b border-gray-200 flex items-center justify-between"
+              class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
               [ngClass]="{
-                'bg-blue-50': col.id === 'open',
-                'bg-yellow-50': col.id === 'in_progress',
-                'bg-green-50': col.id === 'done'
+                'bg-blue-50 dark:bg-blue-900/30': col.id === 'open',
+                'bg-yellow-50 dark:bg-yellow-900/30': col.id === 'in_progress',
+                'bg-green-50 dark:bg-green-900/30': col.id === 'done'
               }"
             >
               <h2
                 class="text-sm font-bold uppercase tracking-wide"
                 [ngClass]="{
-                  'text-blue-700': col.id === 'open',
-                  'text-yellow-700': col.id === 'in_progress',
-                  'text-green-700': col.id === 'done'
+                  'text-blue-700 dark:text-blue-400': col.id === 'open',
+                  'text-yellow-700 dark:text-yellow-400': col.id === 'in_progress',
+                  'text-green-700 dark:text-green-400': col.id === 'done'
                 }"
               >
                 {{ col.label }}
@@ -204,9 +252,9 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
               <span
                 class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold"
                 [ngClass]="{
-                  'bg-blue-100 text-blue-700': col.id === 'open',
-                  'bg-yellow-100 text-yellow-700': col.id === 'in_progress',
-                  'bg-green-100 text-green-700': col.id === 'done'
+                  'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300': col.id === 'open',
+                  'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300': col.id === 'in_progress',
+                  'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300': col.id === 'done'
                 }"
               >
                 {{ col.tasks.length }}
@@ -228,14 +276,14 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
                 *ngFor="let task of col.tasks"
                 cdkDrag
                 [cdkDragDisabled]="!canEdit"
-                class="bg-white rounded-lg shadow-sm border border-gray-200
+                class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700
                        p-3 transition-shadow"
                 [ngClass]="canEdit ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : 'cursor-default'"
               >
                 <!-- Card header row -->
                 <div class="flex items-start justify-between gap-2">
                   <h3
-                    class="text-sm font-semibold text-gray-900 leading-snug"
+                    class="text-sm font-semibold text-gray-900 dark:text-white leading-snug"
                   >
                     {{ task.title }}
                   </h3>
@@ -246,8 +294,8 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
                     <button
                       (click)="openEditModal(task, $event)"
                       title="Edit task"
-                      class="p-1 rounded text-gray-400
-                             hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                      class="p-1 rounded text-gray-400 dark:text-gray-500
+                             hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
                     >
                       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                            stroke-width="1.5" stroke="currentColor">
@@ -264,8 +312,8 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
                     <button
                       (click)="deleteTask(task.id, $event)"
                       title="Delete task"
-                      class="p-1 rounded text-gray-400
-                             hover:text-red-600 hover:bg-red-50 transition-colors"
+                      class="p-1 rounded text-gray-400 dark:text-gray-500
+                             hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
                     >
                       <svg
                         class="h-4 w-4"
@@ -297,7 +345,7 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
                 <!-- Description (if present) -->
                 <p
                   *ngIf="task.description"
-                  class="mt-1 text-xs text-gray-500 line-clamp-2"
+                  class="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2"
                 >
                   {{ task.description }}
                 </p>
@@ -316,7 +364,7 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
               <!-- Empty state -->
               <div
                 *ngIf="col.tasks.length === 0"
-                class="text-center py-8 text-sm text-gray-400"
+                class="text-center py-8 text-sm text-gray-400 dark:text-gray-500"
               >
                 No tasks
               </div>
@@ -327,7 +375,7 @@ type SortOption = 'newest' | 'oldest' | 'title-az' | 'title-za';
         <!-- Loading state -->
         <ng-template #loadingTpl>
           <div class="flex items-center justify-center py-20">
-            <p class="text-gray-500">Loading tasks…</p>
+            <p class="text-gray-500 dark:text-gray-400">Loading tasks…</p>
           </div>
         </ng-template>
       </main>
@@ -377,6 +425,9 @@ export class TaskListComponent implements OnInit {
   showFormModal = false;
   editingTask: Task | null = null;
 
+  // ── Dark mode state ──────────────────────────────────
+  isDarkMode = false;
+
   /** The full unfiltered task list from the service. */
   private allTasks: Task[] = [];
 
@@ -395,7 +446,34 @@ export class TaskListComponent implements OnInit {
     private readonly cdr: ChangeDetectorRef
   ) {}
 
+  // ── Keyboard shortcuts ───────────────────────────────
+
+  @HostListener('document:keydown', ['$event'])
+  handleKeyboardShortcut(event: KeyboardEvent): void {
+    // Shift+N → Open "Add Task" modal (only for users with edit rights)
+    if (event.shiftKey && event.key === 'N') {
+      // Don't trigger when typing in an input/textarea/select
+      const tag = (event.target as HTMLElement)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+      if (this.canEdit && !this.showFormModal) {
+        event.preventDefault();
+        this.openCreateModal();
+      }
+    }
+
+    // Escape → Close modal
+    if (event.key === 'Escape' && this.showFormModal) {
+      this.closeFormModal();
+      this.cdr.detectChanges();
+    }
+  }
+
   ngOnInit(): void {
+    // Restore dark mode preference from localStorage
+    this.isDarkMode = localStorage.getItem('darkMode') === 'true';
+    this.applyDarkModeClass();
+
     this.userRole = this.authService.getUserRole();
     this.canDelete = this.userRole === 'owner' || this.userRole === 'admin';
     this.canEdit = this.userRole === 'owner' || this.userRole === 'admin';
@@ -559,16 +637,32 @@ export class TaskListComponent implements OnInit {
   /** Map category values to Tailwind badge classes. */
   categoryClass(category: Task['category']): Record<string, boolean> {
     return {
-      'bg-purple-100 text-purple-700': category === 'feature',
-      'bg-red-100 text-red-700': category === 'bug',
-      'bg-cyan-100 text-cyan-700': category === 'improvement',
-      'bg-gray-100 text-gray-700': category === 'documentation',
+      'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300': category === 'feature',
+      'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300': category === 'bug',
+      'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300': category === 'improvement',
+      'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300': category === 'documentation',
     };
+  }
+
+  /** Toggle dark mode on/off, persisting preference to localStorage. */
+  toggleDarkMode(): void {
+    this.isDarkMode = !this.isDarkMode;
+    localStorage.setItem('darkMode', String(this.isDarkMode));
+    this.applyDarkModeClass();
   }
 
   /** Sign out and redirect to login. */
   logout(): void {
     this.authService.logout();
+  }
+
+  /** Apply or remove the 'dark' class on the <html> element. */
+  private applyDarkModeClass(): void {
+    if (this.isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }
 
   /** Distribute a flat task array into the Kanban columns. */

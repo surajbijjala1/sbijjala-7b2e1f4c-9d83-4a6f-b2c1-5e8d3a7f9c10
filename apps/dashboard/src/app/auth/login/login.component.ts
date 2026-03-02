@@ -10,26 +10,26 @@ import { AuthService } from '../auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+    <div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4 transition-colors duration-200">
       <div class="w-full max-w-md">
         <!-- Header -->
         <div class="text-center mb-8">
-          <h1 class="text-3xl font-bold text-gray-900">Task Manager</h1>
-          <p class="mt-2 text-sm text-gray-600">
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Task Manager</h1>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
             Sign in to manage your tasks
           </p>
         </div>
 
         <!-- Card -->
-        <div class="bg-white rounded-lg shadow-md p-8">
-          <h2 class="text-xl font-semibold text-gray-800 mb-6">Sign In</h2>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8">
+          <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-6">Sign In</h2>
 
           <!-- Error message -->
           <div
             *ngIf="errorMessage"
-            class="mb-4 rounded-md bg-red-50 border border-red-200 p-3"
+            class="mb-4 rounded-md bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-3"
           >
-            <p class="text-sm text-red-700">{{ errorMessage }}</p>
+            <p class="text-sm text-red-700 dark:text-red-400">{{ errorMessage }}</p>
           </div>
 
           <!-- Login form -->
@@ -38,7 +38,7 @@ import { AuthService } from '../auth.service';
             <div class="mb-4">
               <label
                 for="email"
-                class="block text-sm font-medium text-gray-700 mb-1"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
                 Email address
               </label>
@@ -49,10 +49,11 @@ import { AuthService } from '../auth.service';
                 required
                 [(ngModel)]="email"
                 [disabled]="isLoading"
-                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-                       placeholder-gray-400 shadow-sm
+                class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm
+                       placeholder-gray-400 dark:placeholder-gray-500 shadow-sm
+                       bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
                        focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500
-                       disabled:bg-gray-50 disabled:text-gray-500"
+                       disabled:bg-gray-50 dark:disabled:bg-gray-600 disabled:text-gray-500 dark:disabled:text-gray-400"
                 placeholder="you@example.com"
               />
             </div>
@@ -61,7 +62,7 @@ import { AuthService } from '../auth.service';
             <div class="mb-6">
               <label
                 for="password"
-                class="block text-sm font-medium text-gray-700 mb-1"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
                 Password
               </label>
@@ -72,10 +73,11 @@ import { AuthService } from '../auth.service';
                 required
                 [(ngModel)]="password"
                 [disabled]="isLoading"
-                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm
-                       placeholder-gray-400 shadow-sm
+                class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm
+                       placeholder-gray-400 dark:placeholder-gray-500 shadow-sm
+                       bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
                        focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500
-                       disabled:bg-gray-50 disabled:text-gray-500"
+                       disabled:bg-gray-50 dark:disabled:bg-gray-600 disabled:text-gray-500 dark:disabled:text-gray-400"
                 placeholder="••••••••"
               />
             </div>
@@ -87,6 +89,7 @@ import { AuthService } from '../auth.service';
               class="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white
                      shadow-sm hover:bg-indigo-500
                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+                     dark:focus:ring-offset-gray-800
                      disabled:opacity-50 disabled:cursor-not-allowed
                      transition-colors duration-150"
             >
@@ -97,7 +100,7 @@ import { AuthService } from '../auth.service';
         </div>
 
         <!-- Footer hint -->
-        <p class="mt-4 text-center text-xs text-gray-500">
+        <p class="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
           Demo accounts: owner&#64;acme.com · admin&#64;acme.com · viewer&#64;acme.com
         </p>
       </div>

@@ -42,15 +42,15 @@ export interface TaskFormSubmitEvent {
     <!-- Modal dialog -->
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        class="w-full max-w-lg bg-white rounded-xl shadow-2xl ring-1 ring-gray-200 overflow-hidden"
+        class="w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden"
         (click)="$event.stopPropagation()"
       >
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h2 class="text-lg font-semibold text-gray-900">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
             {{ task ? 'Edit Task' : 'New Task' }}
           </h2>
-          <p class="text-sm text-gray-500 mt-0.5">
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             {{ task ? 'Update the task details below.' : 'Fill in the details to create a new task.' }}
           </p>
         </div>
@@ -59,7 +59,7 @@ export interface TaskFormSubmitEvent {
         <form [formGroup]="form" (ngSubmit)="onSubmit()" class="px-6 py-5 space-y-4">
           <!-- Title -->
           <div>
-            <label for="tf-title" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="tf-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Title <span class="text-red-500">*</span>
             </label>
             <input
@@ -68,17 +68,19 @@ export interface TaskFormSubmitEvent {
               type="text"
               placeholder="Enter task title…"
               class="w-full rounded-md border px-3 py-2 text-sm shadow-sm
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                     placeholder-gray-400 dark:placeholder-gray-500
                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                      transition-colors"
               [ngClass]="{
                 'border-red-300 focus:ring-red-500 focus:border-red-500':
                   form.get('title')?.invalid && form.get('title')?.touched,
-                'border-gray-300': !(form.get('title')?.invalid && form.get('title')?.touched)
+                'border-gray-300 dark:border-gray-600': !(form.get('title')?.invalid && form.get('title')?.touched)
               }"
             />
             <p
               *ngIf="form.get('title')?.invalid && form.get('title')?.touched"
-              class="mt-1 text-xs text-red-600"
+              class="mt-1 text-xs text-red-600 dark:text-red-400"
             >
               Title is required.
             </p>
@@ -86,7 +88,7 @@ export interface TaskFormSubmitEvent {
 
           <!-- Description -->
           <div>
-            <label for="tf-description" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="tf-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Description
             </label>
             <textarea
@@ -94,8 +96,9 @@ export interface TaskFormSubmitEvent {
               formControlName="description"
               rows="3"
               placeholder="Optional description…"
-              class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm
-                     placeholder-gray-400
+              class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm shadow-sm
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                     placeholder-gray-400 dark:placeholder-gray-500
                      focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                      resize-y transition-colors"
             ></textarea>
@@ -105,13 +108,14 @@ export interface TaskFormSubmitEvent {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- Category -->
             <div>
-              <label for="tf-category" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="tf-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Category
               </label>
               <select
                 id="tf-category"
                 formControlName="category"
-                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm
+                class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm shadow-sm
+                       bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
                        focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                        transition-colors"
               >
@@ -124,13 +128,14 @@ export interface TaskFormSubmitEvent {
 
             <!-- Status -->
             <div>
-              <label for="tf-status" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="tf-status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Status
               </label>
               <select
                 id="tf-status"
                 formControlName="status"
-                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm
+                class="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm shadow-sm
+                       bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
                        focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
                        transition-colors"
               >
@@ -142,12 +147,12 @@ export interface TaskFormSubmitEvent {
           </div>
 
           <!-- Footer buttons -->
-          <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 mt-2">
+          <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-gray-700 mt-2">
             <button
               type="button"
               (click)="onCancel()"
-              class="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700
-                     hover:bg-gray-200 transition-colors"
+              class="rounded-md bg-gray-100 dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
+                     hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               Cancel
             </button>
