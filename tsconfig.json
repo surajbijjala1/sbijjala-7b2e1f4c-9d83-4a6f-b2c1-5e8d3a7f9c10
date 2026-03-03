@@ -4,22 +4,16 @@
   "files": [],
   "references": [
     {
-      "path": "./apps/api-e2e"
-    },
-    {
       "path": "./apps/api"
     },
     {
-      "path": "./apps/dashboard-e2e"
+      "path": "./apps/dashboard"
     },
     {
       "path": "./libs/shared/data"
     },
     {
       "path": "./libs/shared/auth"
-    },
-    {
-      "path": "./apps/dashboard"
     }
   ]
 }
